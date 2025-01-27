@@ -7,9 +7,13 @@
     Date:	20.01.2025
  	*****************************************************************************
     Modifications
- 	Date  : -
- 	Auteur: -
- 	Raisons: -
+ 	Date  : 20.01.2025
+ 	Auteur: Simon et Néo
+ 	Raisons: Création initiale du script
+    
+    Date  : 27.01.2025
+ 	Auteur: Simon et Néo
+ 	Raisons: Continuation du script
 
     Date  : -
  	Auteur: -
@@ -18,19 +22,15 @@
     Date  : -
  	Auteur: -
  	Raisons: -
-
-    Date  : 20.01.2025
- 	Auteur: Néo & Simon
- 	Raisons: Création du fichier initiale
  	*****************************************************************************
 .SYNOPSIS
     Description courte
-	Automatiser un script pour récupérer des informations concernant une machine.
+	Automatiser un script pour récupérer des informations concernant une machine
 
 .DESCRIPTION
     Description plus détaillée du script, avec les actions et les tests effectuées ainsi que les résultats possibles
 
-.PARAMETER Param1
+.PARAMETER CreateNewFile
     Description du premier paramètre avec les limites et contraintes
 
 .PARAMETER Param2
@@ -62,34 +62,77 @@
    Un paramètre peut être obligatoire : [Parameter(Mandatory=$True][string]$Param3
 #>
 # La définition des paramètres se trouve juste après l'en-tête et un commentaire sur le.s paramètre.s est obligatoire 
-# param($Param1, $Param2, $Param3)
+param($Param1, 
+    $Param2, 
+    $Param3)
 
 ###################################################################################################################
 # Zone de définition des variables et fonctions, avec exemples
 # Commentaires pour les variables
-$date= Get-Date
-$count= 0
-$path= "c:\temp"
-$title = '╔═══════════════════════════════════════════════════════════════════════════════╗'
-$adresse = Get-NetIPAddress -InterfaceIndex 1 -AddressFamily IPv4
+$date= Get-Date -Format "yyyy.mm.dd hh:mm:ss"
+$titre_top = "╔═══════════════════════════════════════════════════════════════════════════════╗"
+$titre_hea = "║                                 SYSINFO LOGGER                                ║"
+$titre_mid = "╟═══════════════════════════════════════════════════════════════════════════════╣"
+$titre_bod = "║ Collecte fait le $date                                          ║"
+$titre_end = "╚═══════════════════════════════════════════════════════════════════════════════╝"
+$adresse
+$computerInfo
+$systemInfo
+$disque
 
 ###################################################################################################################
 # Zone de tests comme les paramètres renseignés ou les droits administrateurs
 
 # Affiche l'aide si un ou plusieurs paramètres ne sont par renseignés, "safe guard clauses" permet d'optimiser l'exécution et la lecture des scripts
-if(!$Param1 -or !$Param2 -or !$Param3)
+<# if(!$Param1 -or !$Param2 -or !$Param3)
 {
     Get-Help $MyInvocation.Mycommand.Path
 	exit
-}
+} #>
 ###################################################################################################################
 # Corps du script
 
-# Afficher le titre
-Write-Host $title
+# Initialisation de variables
+$adresse = Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias Ethernet
+$computerInfo = Get-ComputerInfo
+$systemInfo = Get-CimInstance -ClassName Win32_ComputerSystem
+$disque = Get-Volume | Format-List Driveletter, FriendlyName, SizeRemaining, Size
 
-# Afficher l'adresse ip IPv4
-Get-NetIPAddress -AddressFamily IPv4 | Write-Host
- 
-# Afficher la version de l'OS
-Get-ComputerInfo -Property "*version"
+
+# Affichage de l'en-tête dans le fichier log & le terminal
+
+# Dans le fichier
+$titre_top | Out-File -Force -FilePath .\log\sysloginfo.log -Encoding utf8 -Append
+$titre_hea | Out-File -Force -FilePath .\log\sysloginfo.log -Encoding utf8 -Append
+$titre_mid | Out-File -Force -FilePath .\log\sysloginfo.log -Encoding utf8 -Append
+$titre_bod | Out-File -Force -FilePath .\log\sysloginfo.log -Encoding utf8 -Append
+$titre_end | Out-File -Force -FilePath .\log\sysloginfo.log -Encoding utf8 -Append
+""         | Out-File -Force -FilePath .\log\sysloginfo.log -Encoding utf8 -Append
+
+# Dans le terminal
+Write-Host $titre_top
+Write-Host $titre_hea
+Write-Host $titre_mid
+Write-Host $titre_bod
+Write-Host $titre_end
+Write-Host ""
+
+
+# Affichage des information sur l'OS dans le fichier log & le terminal
+
+# Dans le fichier
+#...
+
+# Dans le terminal
+Write-Host "┌ OPERATING SYSTEM"
+Write-Host "| Hostname:`t" $systemInfo.Name
+Write-Host "| IP:`t`t" $adresse.IPAddress
+Write-Host "| OS:`t`t" $computerInfo.OsName
+Write-Host "└ Version:`t" $computerInfo.OsVersion
+Write-Host ""
+
+<#
+# Afficher l'utilisation de l'espace disque
+Write-Output $disque
+
+#>
