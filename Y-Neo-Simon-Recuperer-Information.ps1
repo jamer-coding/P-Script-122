@@ -27,9 +27,9 @@
  	Auteur: Simon et Néo
  	Raisons: [VERSION 1.9.0] Ajout des commentaires d'aide et implémentation du remoting (pas fonctionnel pour le moment)
 
-    Date  : -
- 	Auteur: -
- 	Raisons: -
+    Date  : - 03.03.2025
+ 	Auteur: - Simon et Néo
+ 	Raisons: - [VERSION 1.9.5] Simplification du code et implémentation du remoting semi-fonctionnel
 
     Date  : -
  	Auteur: -
@@ -42,14 +42,14 @@
 .DESCRIPTION
     Ce script est utilisé pour la collecte d'information sur l'ordinateur local, ou un ordinateur distant.
     Il est possible de donner un chemin d'accès d'un fichier journal (.log) pour sauvegarder les informations.
-    Il est aussi possible de donner une adresse IP distante pour prendre des informations d'une machine à distance au lieu de l'ordinateur local.
+    Il est aussi possible de donner une addresse IP distante pour prendre des informations d'une machine à distance au lieu de l'ordinateur local.
 
 .PARAMETER LogFilePath
     Le paramètre LogFilePath spécifie le chemin où le fichier journal doit être sauvegardé.
     Il doit s'agir d'un chemin de fichier `.log` valide.
 
 .PARAMETER DistantComputerIP
-    L'adresse IP d'une machine à distance.
+    L'addresse IP d'une machine à distance.
     La machine doit être dans le même réseau, avec son FireWall désactivé.
 
 .PARAMETER DistantComputerName
@@ -57,13 +57,7 @@
     La machine doit être dans le même réseau, avec son FireWall désactivé.
 
 .PARAMETER ReturnLine
-    Paramètre utilisé pour retourner la journalisation au lieu du
-
-.PARAMETER h
-    Un paramètre utilisé pour montrer l'aide du script
-
-.PARAMETER help
-    Un paramètre utilisé pour montrer l'aide du script
+    Paramètre utilisé pour retourner la collecte sous forme de ligne
 
 .EXAMPLE
 	.\Y-Neo-Simon-Recuperer-Information.ps1
@@ -84,7 +78,7 @@
 .INPUTS
     Les paramètres utiles à l'utilisateur
     LogFilePath         : Chemin d'accès d'un fichier log pour journaliser la collecte
-    DistantComputerIP   : L'adresse IP d'un ordinateur à distance pour la collecte d'information
+    DistantComputerIP   : L'addresse IP d'un ordinateur à distance pour la collecte d'information
     h & help            : Paramètre pour afficher l'aide du script
 
 .OUTPUTS
@@ -101,27 +95,29 @@
    Un paramètre peut être obligatoire : [Parameter(Mandatory=$True][string]$Param3
 #>
 # La définition des paramètres se trouve juste après l'en-tête et un commentaire sur le.s paramètre.s est obligatoire
-param([string] $LogFilePath, [ipaddress] $DistantComputerIP, [string] $DistantComputerName, [switch] $ReturnLine, [switch] $h, [switch] $help)
+param([string] $LogFilePath, [ipaddress] $DistantComputerIP, [string] $DistantComputerName, [switch] $ReturnLine)
 
 ###################################################################################################################
 
-$titre_date = Get-Date -Format "yyyy.MM.dd hh:mm:ss"                                                # Date utilisé dans l'en-tête
+$titre_date = Get-Date -Format "yyyy.MM.dd HH:mm:ss"                                                # Date utilisé dans l'en-tête
 $titre_top = "╔═══════════════════════════════════════════════════════════════════════════════╗"    # En-tête du script (s'affiche dans powershell)
 $titre_hea = "║                                 SYSINFO LOGGER                                ║"    # En-tête du script (s'affiche dans powershell)
 $titre_mid = "╟═══════════════════════════════════════════════════════════════════════════════╣"    # En-tête du script (s'affiche dans powershell)
 $titre_bod = "║ Collecte fait le $titre_date                                          ║"            # En-tête du script (s'affiche dans powershell)
 $titre_end = "╚═══════════════════════════════════════════════════════════════════════════════╝"    # En-tête du script (s'affiche dans powershell)
 
-$date_log = Get-Date -Format "yyyy-MM-dd hh:mm"                                                     # Date de journalisation
+$date_log = Get-Date -Format "yyyy-MM-dd HH:mm"                                                     # Date de journalisation
 $titre_log                                                                                          # Titre du fichier log
+
+$tab_Data = @{}                                                                                     # Toutes les données collectées
 
 $Path                                                                                               # Chemin du fichier log
 
 $session                                                                                            # Session powershell sur une machine distante
 
-$adress                                                                                             # Addresse IP de l'ordinateur local
+$addresses                                                                                          # Addresses IP de l'ordinateur local
 
-$computerInfo                                                                                       # Infos sur l'ordinateur
+$versionOS                                                                                          # Version de l'OS
 $systemInfo                                                                                         # Système d'exploitation
 
 $processor                                                                                          # Infos processeur
@@ -129,8 +125,9 @@ $gpu                                                                            
 
 $disks                                                                                              # Infos disques de stockage
 
-$ram                                                                                                # Infos RAM totale
-$ramUsed                                                                                            # Infos RAM utilisée                                                                                            #
+$ram                                                                                                # Infos RAM (tableau)
+$ramTotal                                                                                           # Info RAM total
+$ramUsed                                                                                            # Info RAM utilisée                                                                                            #
 
 $packages                                                                                           #Paquets installés sur le système Les packets logiciels installés sur l'ordinateur
 
@@ -187,18 +184,6 @@ function Write-Apps([Parameter(Mandatory = $True)] $packetTable, [switch] $isLog
 
 ###################################################################################################################
 
-# Vérifier que soit $h soit $help a été appelé
-if ($h -or $help) {
-    # Effacer la console
-    Clear-Host
-
-    # Afficher l'aide
-    Get-Help $MyInvocation.MyCommand.Path -Full | Out-Default
-
-    # Quitter le script
-    exit
-}
-
 # Vérifier que $LogFilePath a été appelé
 if ($LogFilePath) {
     # Vérifier que $LogFilePath est un chemin valide et qui mène à un fichier log
@@ -227,10 +212,10 @@ else {
 if ($DistantComputerName) {
     # Vérifie qu'une connection peut être faite
     if (Test-Connection -ComputerName $DistantComputerName -Count 1 -Quiet) {
-        # Trouver l'adresse IP de la machine distante grâce à son adresse IP
+        # Trouver l'addresse IP de la machine distante grâce à son addresse IP
         $DistantComputerIP = [System.Net.Dns]::GetHostByName($DistantComputerName).AddressList.IPAddressToString
     }
-    # L'adresse ip n'est pas valide
+    # L'addresse ip n'est pas valide
     else {
         # Efface la console
         Clear-Host
@@ -247,16 +232,16 @@ if ($DistantComputerName) {
 elseif ($DistantComputerIP) {
     # Vérifie qu'une connection peut être faite
     if (Test-Connection -IPAddress $DistantComputerIP -Count 1 -Quiet) {
-        # Trouver le nom de la machine distante grâce à son adresse IP
+        # Trouver le nom de la machine distante grâce à son addresse IP
         $DistantComputerName = [System.Net.Dns]::GetHostByAddress($DistantComputerIP).Hostname
     }
-    # L'adresse ip n'est pas valide
+    # L'addresse ip n'est pas valide
     else {
         # Efface la console
         Clear-Host
 
         # Lance une erreur
-        throw [System.ArgumentException]::new("L'adresse IP donnée au paramètre DistantComputerIP n'est pas valide. Veuillez réessayer.")
+        throw [System.ArgumentException]::new("L'addresse IP donnée au paramètre DistantComputerIP n'est pas valide. Veuillez réessayer.")
 
         # Ferme le programme
         exit
@@ -266,35 +251,39 @@ elseif ($DistantComputerIP) {
 
 ###################################################################################################################
 
+# $tab = @{} METTRE TOUTES LES VARIABLES DEDANS, LANCER DANS DISTANTCOMPUTER OU LOCALEMENT PUIS PRINT                                             
+
 # Vérifie qu'on a un nom de machine distante
 if ($DistantComputerName) {
     # Ouvrir une session PowerShell
-    $session = New-PSSession -ComputerName $DistantComputerName -Credential Get-Credential # ERREUR??? DEMANDER AU PROFESSEUR
+    $session = New-PSSession -ComputerName $DistantComputerName -Credential Get-Credential
 
     # Invoquer le script dans la session de l'autre machine
-    Invoke-Command -Session $session -FilePath $MyInvocation.MyCommand.Path | Write-Host
-
-    # Vérifier que $Path n'est pas null
-    if (!($null -eq $Path)) {
-        # Invoquer le script dans la session de l'autre machine et donne seulement le résultat sous format ligne pour le mettre dans le fichier log
-        Invoke-Command -Session $session -FilePath $MyInvocation.MyCommand.Path -ReturnLine | Add-Content $Path
-    }
+    Invoke-Command -Session $session -FilePath $MyInvocation.MyCommand.Path
 }
 # Pas de machine distante à vérifier
 else {
     # Initialisation de variables
-    $titre_log = $date_log + " - " + $systemInfo.Name + "/" + $adresse.IPAddress + " - "
+    $addresses = Get-NetIPAddress -AddressFamily IPv4
 
-    $adress = (Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias Ethernet).IPAddress
+    # Vérification pour voir si $addresses est un tableau
+    if ($addresses.Length -gt 0) {
+        $titre_log = $date_log + " - " + $systemInfo.Name + "/" + $addresses[0].IPAddress + " - "
+    }
+    # Ce n'est pas un tableau
+    else {
+        $titre_log = $date_log + " - " + $systemInfo.Name + "/" + $addresses.IPAddress + " - "
+    }
 
-    $computerInfo = Get-ComputerInfo
+    $versionOS = [System.Environment]::OSVersion.Version
     $systemInfo = Get-CimInstance -ClassName Win32_ComputerSystem
 
     $processor = (Get-CimInstance -ClassName CIM_Processor).Name
     $gpu = (Get-CimInstance -ClassName CIM_VideoController).Name
 
-    $ram = [Math]::Round($computerInfo.CsTotalPhysicalMemory / 1GB, 2)
-    $ramUsed = [Math]::Round($computerInfo.CsTotalPhysicalMemory / 1GB - $computerInfo.OsFreePhysicalMemory / 1MB, 2)
+    $ram = Get-CimInstance -ClassName CIM_OperatingSystem
+    $ramTotal = [Math]::Round((Get-CimInstance -Class Win32_ComputerSystem).TotalPhysicalMemory / 1GB, 2)
+    $ramUsed = [Math]::Round((Get-CimInstance -Class Win32_ComputerSystem).TotalPhysicalMemory / 1GB - $ram.FreePhysicalMemory * 1KB / 1GB, 2)
 
     $disks = Get-Volume
 
@@ -316,9 +305,16 @@ else {
         # Affichage des information sur l'OS dans le terminal
         Write-Host "┌ OPERATING SYSTEM"
         Write-Host "| Hostname:`t" $systemInfo.Name
-        Write-Host "| IP:`t`t" $adress
-        Write-Host "| OS:`t`t" $computerInfo.OsName
-        Write-Host "└ Version:`t" $computerInfo.OsVersion "Build" $computerInfo.OsBuildNumber
+
+        # Afficher les addresses IP
+        foreach ($IP in $addresses) {
+            Write-Host "| Interface :`t", $($IP.InterfaceAlias)
+            Write-Host "| Adresse IP :`t", $($IP.IPAddress)
+            Write-Host "|"
+        }
+
+        Write-Host "| OS:`t`t" (Get-WmiObject -Class Win32_OperatingSystem).Caption
+        Write-Host "└ Version:`t" $versionOS.Major "." $versionOS.Minor "." $versionOS.Build "Build" $versionOS.Build
         Write-Host ""
 
         # Affichage des information sur le hardware dans le terminal
@@ -348,14 +344,14 @@ else {
         }
 
         # Afficher la ram
-        Write-Host "└ RAM:`t`t" $ramUsed "/" $ram "GB"
+        Write-Host "└ RAM:`t`t" $ramUsed "/" $ramTotal "GB"
         Write-Host ""
 
         # Vérifier que $Path n'est pas null
         if (!($null -eq $Path)) {
             # Affichage des informations dans le fichier sysloginfo.log
-            $titre_log + "OS: " + $computerInfo.OsName +
-            " - Version: " + $computerInfo.OsVersion + " Build " + $computerInfo.OsBuildNumber | Add-Content $Path -NoNewline
+            $titre_log + "OS: " + (Get-WmiObject -Class Win32_OperatingSystem).Caption +
+            " - Version: " + $versionOS.Major + "." + $versionOS.Minor + "." + $versionOS.Build + " Build " + $versionOS.Build | Add-Content $Path -NoNewline
 
             # Afficher les disques
 
@@ -381,7 +377,7 @@ else {
             }
 
             # Afficher le reste
-            " - RAM: " + $ramUsed + " / " + $ram + " GB" | Add-Content $Path
+            " - RAM: " + $ramUsed + " / " + $ramTotal + " GB" | Add-Content $Path
 
             # Afficher les programmes installés
             $titre_log + "Programmes installés : " | Add-Content $Path -NoNewline
@@ -396,12 +392,11 @@ else {
     # ReturnLine a été appelé
     else {
         # Affichage des informations dans le fichier log
-        $titre_log + "OS: " + $computerInfo.OsName +
-        " - Version: " + $computerInfo.OsVersion + " Build " + $computerInfo.OsBuildNumber | Write-Host -NoNewline
+        $titre_log + "OS: " + (Get-WmiObject -Class Win32_OperatingSystem).Caption +
+        " - Version: " + $versionOS.Major + "." + $versionOS.Minor + "." + $versionOS.Build + " Build " + $versionOS.Build | Write-Host -NoNewline
 
         # Afficher les disques
 
-        #boucle foreach pour tout les disques
         #boucle foreach pour tout les disques
         foreach ($disk in $disks) {
             # Prendre la lettre du volume
@@ -423,7 +418,7 @@ else {
         }
 
         # Afficher le reste
-        " - RAM: " + $ramUsed + " / " + $ram + " GB" | Write-Host
+        " - RAM: " + $ramUsed + " / " + $ramTotal + " GB" | Write-Host
 
         # Afficher les programmes installés
         $titre_log + "Programmes installés : " | Write-Host -NoNewline
