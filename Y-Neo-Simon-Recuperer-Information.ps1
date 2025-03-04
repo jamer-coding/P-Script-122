@@ -31,6 +31,10 @@
  	Auteur: - Simon et Néo
  	Raisons: - [VERSION 1.9.5] Simplification du code et implémentation du remoting semi-fonctionnel
 
+    Date  : - 04.03.2025
+ 	Auteur: - Néo
+ 	Raisons: - [Version 2.0.0] Modification du code pour simplifier le remoting, qui fonctionne parfaitement
+
     Date  : -
  	Auteur: -
  	Raisons: -
@@ -42,14 +46,14 @@
 .DESCRIPTION
     Ce script est utilisé pour la collecte d'information sur l'ordinateur local, ou un ordinateur distant.
     Il est possible de donner un chemin d'accès d'un fichier journal (.log) pour sauvegarder les informations.
-    Il est aussi possible de donner une addresse IP distante pour prendre des informations d'une machine à distance au lieu de l'ordinateur local.
+    Il est aussi possible de donner une adresse IP distante pour prendre des informations d'une machine à distance au lieu de l'ordinateur local.
 
 .PARAMETER LogFilePath
     Le paramètre LogFilePath spécifie le chemin où le fichier journal doit être sauvegardé.
     Il doit s'agir d'un chemin de fichier `.log` valide.
 
 .PARAMETER DistantComputerIP
-    L'addresse IP d'une machine à distance.
+    L'adresse IP d'une machine à distance.
     La machine doit être dans le même réseau, avec son FireWall désactivé.
 
 .PARAMETER DistantComputerName
@@ -78,7 +82,7 @@
 .INPUTS
     Les paramètres utiles à l'utilisateur
     LogFilePath         : Chemin d'accès d'un fichier log pour journaliser la collecte
-    DistantComputerIP   : L'addresse IP d'un ordinateur à distance pour la collecte d'information
+    DistantComputerIP   : L'adresse IP d'un ordinateur à distance pour la collecte d'information
     h & help            : Paramètre pour afficher l'aide du script
 
 .OUTPUTS
@@ -109,13 +113,11 @@ $titre_end = "╚═════════════════════
 $date_log = Get-Date -Format "yyyy-MM-dd HH:mm"                                                     # Date de journalisation
 $titre_log                                                                                          # Titre du fichier log
 
-$tab_Data = @{}                                                                                     # Toutes les données collectées
-
 $Path                                                                                               # Chemin du fichier log
 
 $session                                                                                            # Session powershell sur une machine distante
 
-$addresses                                                                                          # Addresses IP de l'ordinateur local
+$addresses                                                                                          # Adresses IP de l'ordinateur local
 
 $versionOS                                                                                          # Version de l'OS
 $systemInfo                                                                                         # Système d'exploitation
@@ -212,10 +214,10 @@ else {
 if ($DistantComputerName) {
     # Vérifie qu'une connection peut être faite
     if (Test-Connection -ComputerName $DistantComputerName -Count 1 -Quiet) {
-        # Trouver l'addresse IP de la machine distante grâce à son addresse IP
+        # Trouver l'adresse IP de la machine distante grâce à son adresse IP
         $DistantComputerIP = [System.Net.Dns]::GetHostByName($DistantComputerName).AddressList.IPAddressToString
     }
-    # L'addresse ip n'est pas valide
+    # L'adresse ip n'est pas valide
     else {
         # Efface la console
         Clear-Host
@@ -232,16 +234,16 @@ if ($DistantComputerName) {
 elseif ($DistantComputerIP) {
     # Vérifie qu'une connection peut être faite
     if (Test-Connection -IPAddress $DistantComputerIP -Count 1 -Quiet) {
-        # Trouver le nom de la machine distante grâce à son addresse IP
+        # Trouver le nom de la machine distante grâce à son adresse IP
         $DistantComputerName = [System.Net.Dns]::GetHostByAddress($DistantComputerIP).Hostname
     }
-    # L'addresse ip n'est pas valide
+    # L'adresse ip n'est pas valide
     else {
         # Efface la console
         Clear-Host
 
         # Lance une erreur
-        throw [System.ArgumentException]::new("L'addresse IP donnée au paramètre DistantComputerIP n'est pas valide. Veuillez réessayer.")
+        throw [System.ArgumentException]::new("L'adresse IP donnée au paramètre DistantComputerIP n'est pas valide. Veuillez réessayer.")
 
         # Ferme le programme
         exit
@@ -251,29 +253,30 @@ elseif ($DistantComputerIP) {
 
 ###################################################################################################################
 
-# $tab = @{} METTRE TOUTES LES VARIABLES DEDANS, LANCER DANS DISTANTCOMPUTER OU LOCALEMENT PUIS PRINT                                             
-
 # Vérifie qu'on a un nom de machine distante
 if ($DistantComputerName) {
     # Ouvrir une session PowerShell
     $session = New-PSSession -ComputerName $DistantComputerName -Credential Get-Credential
 
-    # Invoquer le script dans la session de l'autre machine
-    Invoke-Command -Session $session -FilePath $MyInvocation.MyCommand.Path
+    # Initialisation de variables de l'autre machine
+    $addresses = Invoke-Command -Session $session -ScriptBlock { Get-NetIPAddress -AddressFamily IPv4 }
+
+    $versionOS = Invoke-Command -Session $session -ScriptBlock { [System.Environment]::OSVersion.Version }
+    $systemInfo = Invoke-Command -Session $session -ScriptBlock { Get-CimInstance -ClassName Win32_ComputerSystem }
+
+    $processor = Invoke-Command -Session $session -ScriptBlock { (Get-CimInstance -ClassName CIM_Processor).Name }
+    $gpu = Invoke-Command -Session $session -ScriptBlock { (Get-CimInstance -ClassName CIM_VideoController).Name }
+
+    $ram = Invoke-Command -Session $session -ScriptBlock { Get-CimInstance -ClassName CIM_OperatingSystem }
+
+    $disks = Invoke-Command -Session $session -ScriptBlock { Get-Volume }
+
+    $packages = Invoke-Command -Session $session -ScriptBlock { Get-Package }
 }
 # Pas de machine distante à vérifier
 else {
-    # Initialisation de variables
+    # Initialisation des variables sur la machine locale
     $addresses = Get-NetIPAddress -AddressFamily IPv4
-
-    # Vérification pour voir si $addresses est un tableau
-    if ($addresses.Length -gt 0) {
-        $titre_log = $date_log + " - " + $systemInfo.Name + "/" + $addresses[0].IPAddress + " - "
-    }
-    # Ce n'est pas un tableau
-    else {
-        $titre_log = $date_log + " - " + $systemInfo.Name + "/" + $addresses.IPAddress + " - "
-    }
 
     $versionOS = [System.Environment]::OSVersion.Version
     $systemInfo = Get-CimInstance -ClassName Win32_ComputerSystem
@@ -282,121 +285,93 @@ else {
     $gpu = (Get-CimInstance -ClassName CIM_VideoController).Name
 
     $ram = Get-CimInstance -ClassName CIM_OperatingSystem
-    $ramTotal = [Math]::Round((Get-CimInstance -Class Win32_ComputerSystem).TotalPhysicalMemory / 1GB, 2)
-    $ramUsed = [Math]::Round((Get-CimInstance -Class Win32_ComputerSystem).TotalPhysicalMemory / 1GB - $ram.FreePhysicalMemory * 1KB / 1GB, 2)
 
     $disks = Get-Volume
 
     $packages = Get-Package
 
-    # Effacer les entrées
-    Clear-Host
+}
 
-    # Vérifier que ReturnLine n'a pas été appelé
-    if (!$ReturnLine) {
-        # Affichage de l'en-tête dans le terminal
-        Write-Host $titre_top
-        Write-Host $titre_hea
-        Write-Host $titre_mid
-        Write-Host $titre_bod
-        Write-Host $titre_end
-        Write-Host ""
+# Effacer les entrées
+Clear-Host
 
-        # Affichage des information sur l'OS dans le terminal
-        Write-Host "┌ OPERATING SYSTEM"
-        Write-Host "| Hostname:`t" $systemInfo.Name
+# Calcul de la ram
+$ramTotal = [Math]::Round((Get-CimInstance -Class Win32_ComputerSystem).TotalPhysicalMemory / 1GB, 2)
+$ramUsed = [Math]::Round((Get-CimInstance -Class Win32_ComputerSystem).TotalPhysicalMemory / 1GB - $ram.FreePhysicalMemory * 1KB / 1GB, 2)
 
-        # Afficher les addresses IP
-        foreach ($IP in $addresses) {
-            Write-Host "| Interface :`t", $($IP.InterfaceAlias)
-            Write-Host "| Adresse IP :`t", $($IP.IPAddress)
-            Write-Host "|"
+# Vérification pour voir si $addresses est un tableau
+if ($addresses.Length -gt 0) {
+    $titre_log = $date_log + " - " + $systemInfo.Name + "/" + $addresses[0].IPAddress + " - "
+}
+# Ce n'est pas un tableau
+else {
+    $titre_log = $date_log + " - " + $systemInfo.Name + "/" + $addresses.IPAddress + " - "
+}
+
+# Vérifier que ReturnLine n'a pas été appelé
+if (!$ReturnLine) {
+    # Affichage de l'en-tête dans le terminal
+    Write-Host $titre_top
+    Write-Host $titre_hea
+    Write-Host $titre_mid
+    Write-Host $titre_bod
+    Write-Host $titre_end
+    Write-Host ""
+
+    # Affichage des information sur l'OS dans le terminal
+    Write-Host "┌ OPERATING SYSTEM"
+    Write-Host "| Hostname:`t" $systemInfo.Name
+
+    # Afficher les adresses IP
+    foreach ($IP in $addresses) {
+        Write-Host "| Interface :`t", $($IP.InterfaceAlias)
+        Write-Host "| Adresse IP :`t", $($IP.IPAddress)
+        Write-Host "|"
+    }
+
+    Write-Host "| OS:`t`t" (Get-WmiObject -Class Win32_OperatingSystem).Caption
+    Write-Host "└ Version:`t" $versionOS.Major "." $versionOS.Minor "." $versionOS.Build "Build" $versionOS.Build
+    Write-Host ""
+
+    # Affichage des information sur le hardware dans le terminal
+    Write-Host "┌ HARDWARE"
+    Write-Host "| CPU:`t`t" $processor
+    Write-Host "| GPU 0:`t" $gpu
+
+    # Afficher les disques
+
+    #boucle foreach pour tout les disques
+    foreach ($disk in $disks) {
+        # Prendre la lettre du volume
+        $diskLetter = $disk.DriveLetter
+
+        # Prendre le type du volume
+        $diskType = $disk.DriveType
+
+        # Si la lettre n'est pas null et que le type de volume n'est pas CD-ROM
+        if (!($null -eq $diskLetter -or "CD-ROM" -eq $diskType)) {
+            # Prendre toute les informations utiles
+            $diskSize = [Math]::Round($disk.Size / 1GB, 2)
+            $diskRemainingSize = [Math]::Round(($disk.Size - $disk.SizeRemaining) / 1GB, 2)
+
+            # Afficher le disque
+            Write-Host "| Disque"$diskLetter":`t" $diskRemainingSize "/" $diskSize "GB"
         }
+    }
 
-        Write-Host "| OS:`t`t" (Get-WmiObject -Class Win32_OperatingSystem).Caption
-        Write-Host "└ Version:`t" $versionOS.Major "." $versionOS.Minor "." $versionOS.Build "Build" $versionOS.Build
-        Write-Host ""
+    # Afficher la ram
+    Write-Host "└ RAM:`t`t" $ramUsed "/" $ramTotal "GB"
+    Write-Host ""
 
-        # Affichage des information sur le hardware dans le terminal
-        Write-Host "┌ HARDWARE"
-        Write-Host "| CPU:`t`t" $processor
-        Write-Host "| GPU 0:`t" $gpu
+    # Vérifier que $Path n'est pas null
+    if (!($null -eq $Path)) {
+        # Affichage des informations dans le fichier sysloginfo.log
+        $titre_log + "OS: " + (Get-WmiObject -Class Win32_OperatingSystem).Caption +
+        " - Version: " + $versionOS.Major + "." + $versionOS.Minor + "." + $versionOS.Build + " Build " + $versionOS.Build | Add-Content $Path -NoNewline
 
         # Afficher les disques
 
         #boucle foreach pour tout les disques
-        foreach ($disk in $disks) {
-            # Prendre la lettre du volume
-            $diskLetter = $disk.DriveLetter
-
-            # Prendre le type du volume
-            $diskType = $disk.DriveType
-
-            # Si la lettre n'est pas null et que le type de volume n'est pas CD-ROM
-            if (!($null -eq $diskLetter -or "CD-ROM" -eq $diskType)) {
-                # Prendre toute les informations utiles
-                $diskSize = [Math]::Round($disk.Size / 1GB, 2)
-                $diskRemainingSize = [Math]::Round(($disk.Size - $disk.SizeRemaining) / 1GB, 2)
-
-                # Afficher le disque
-                Write-Host "| Disque"$diskLetter":`t" $diskRemainingSize "/" $diskSize "GB"
-            }
-        }
-
-        # Afficher la ram
-        Write-Host "└ RAM:`t`t" $ramUsed "/" $ramTotal "GB"
-        Write-Host ""
-
-        # Vérifier que $Path n'est pas null
-        if (!($null -eq $Path)) {
-            # Affichage des informations dans le fichier sysloginfo.log
-            $titre_log + "OS: " + (Get-WmiObject -Class Win32_OperatingSystem).Caption +
-            " - Version: " + $versionOS.Major + "." + $versionOS.Minor + "." + $versionOS.Build + " Build " + $versionOS.Build | Add-Content $Path -NoNewline
-
-            # Afficher les disques
-
-            #boucle foreach pour tout les disques
-            #boucle foreach pour tout les disques
-            foreach ($disk in $disks) {
-                # Prendre la lettre du volume
-                $diskLetter = $disk.DriveLetter
-
-                # Prendre le type du volume
-                $diskType = $disk.DriveType
-
-                # Si la lettre n'est pas null et que le type de volume n'est pas CD-ROM
-                if (!($null -eq $diskLetter -or "CD-ROM" -eq $diskType)) {
-                    # Prendre toute les informations utiles
-                    $diskSize = [Math]::Round($disk.Size / 1GB, 2)
-                    $diskRemainingSize = [Math]::Round(($disk.Size - $disk.SizeRemaining) / 1GB, 2)
-
-                    # Afficher le disque dans le fichier log
-                    " - Utilisation de l'espace disque " + $diskLetter + ": " +
-                    $diskRemainingSize + " / " + $diskSize + " GB" | Add-Content $Path -NoNewline
-                }
-            }
-
-            # Afficher le reste
-            " - RAM: " + $ramUsed + " / " + $ramTotal + " GB" | Add-Content $Path
-
-            # Afficher les programmes installés
-            $titre_log + "Programmes installés : " | Add-Content $Path -NoNewline
-
-            # Appel de la fonction Write-Apps
-            Write-Apps -packetTable $packages -isLog
-
-            # Afficher le fuseau horraire
-            $titre_log + "Fuseau Horaire : " + $timezone + "`n" | Add-Content $Path
-        }
-    }
-    # ReturnLine a été appelé
-    else {
-        # Affichage des informations dans le fichier log
-        $titre_log + "OS: " + (Get-WmiObject -Class Win32_OperatingSystem).Caption +
-        " - Version: " + $versionOS.Major + "." + $versionOS.Minor + "." + $versionOS.Build + " Build " + $versionOS.Build | Write-Host -NoNewline
-
-        # Afficher les disques
-
         #boucle foreach pour tout les disques
         foreach ($disk in $disks) {
             # Prendre la lettre du volume
@@ -413,20 +388,60 @@ else {
 
                 # Afficher le disque dans le fichier log
                 " - Utilisation de l'espace disque " + $diskLetter + ": " +
-                $diskRemainingSize + " / " + $diskSize + " GB" | Write-Host -NoNewline
+                $diskRemainingSize + " / " + $diskSize + " GB" | Add-Content $Path -NoNewline
             }
         }
 
         # Afficher le reste
-        " - RAM: " + $ramUsed + " / " + $ramTotal + " GB" | Write-Host
+        " - RAM: " + $ramUsed + " / " + $ramTotal + " GB" | Add-Content $Path
 
         # Afficher les programmes installés
-        $titre_log + "Programmes installés : " | Write-Host -NoNewline
+        $titre_log + "Programmes installés : " | Add-Content $Path -NoNewline
 
         # Appel de la fonction Write-Apps
-        Write-Apps -packetTable $packages
+        Write-Apps -packetTable $packages -isLog
 
         # Afficher le fuseau horraire
-        $titre_log + "Fuseau Horaire : " + $timezone + "`n" | Write-Host
+        $titre_log + "Fuseau Horaire : " + $timezone + "`n" | Add-Content $Path
     }
+}
+# ReturnLine a été appelé
+else {
+    # Affichage des informations dans le fichier log
+    $titre_log + "OS: " + (Get-WmiObject -Class Win32_OperatingSystem).Caption +
+    " - Version: " + $versionOS.Major + "." + $versionOS.Minor + "." + $versionOS.Build + " Build " + $versionOS.Build | Write-Host -NoNewline
+
+    # Afficher les disques
+
+    #boucle foreach pour tout les disques
+    foreach ($disk in $disks) {
+        # Prendre la lettre du volume
+        $diskLetter = $disk.DriveLetter
+
+        # Prendre le type du volume
+        $diskType = $disk.DriveType
+
+        # Si la lettre n'est pas null et que le type de volume n'est pas CD-ROM
+        if (!($null -eq $diskLetter -or "CD-ROM" -eq $diskType)) {
+            # Prendre toute les informations utiles
+            $diskSize = [Math]::Round($disk.Size / 1GB, 2)
+            $diskRemainingSize = [Math]::Round(($disk.Size - $disk.SizeRemaining) / 1GB, 2)
+
+            # Afficher le disque dans le fichier log
+            " - Utilisation de l'espace disque " + $diskLetter + ": " +
+            $diskRemainingSize + " / " + $diskSize + " GB" | Write-Host -NoNewline
+        }
+    }
+
+    # Afficher le reste
+    " - RAM: " + $ramUsed + " / " + $ramTotal + " GB" | Write-Host
+
+    # Afficher les programmes installés
+    $titre_log + "Programmes installés : " | Write-Host -NoNewline
+
+    # Appel de la fonction Write-Apps
+    Write-Apps -packetTable $packages
+
+    # Afficher le fuseau horraire
+    $titre_log + "Fuseau Horaire : " + $timezone + "`n" | Write-Host
 }
