@@ -2,42 +2,46 @@
 .NOTES
     *****************************************************************************
     ETML
-    Nom du script: Y-P_Script-Neo-Simon.ps1
-    Auteur:	Simon Boschetti & Néo Darbellay
-    Date:	03.02.2025
+    Nom du script	:	Y-P_Script-Neo-Simon.ps1
+    Auteur			:	Simon Boschetti & Néo Darbellay
+    Date			:	03.02.2025
  	*****************************************************************************
     Modifications
- 	Date  : 20.01.2025
- 	Auteur: Simon et Néo
- 	Raisons: [VERSION 0.1.0] Création initiale du script
+ 	Date	:	20.01.2025
+ 	Auteur	:	Simon et Néo
+ 	Raisons	:	[VERSION 0.1.0] Création initiale du script
 
-    Date  : 27.01.2025
- 	Auteur: Simon et Néo
- 	Raisons: [VERSION 0.4.0] Continuation du script
+    Date	:	27.01.2025
+ 	Auteur	:	Simon et Néo
+ 	Raisons	:	[VERSION 0.4.0] Continuation du script
 
-    Date  : 03.02.2025
- 	Auteur: Simon et Néo
- 	Raisons: [VERSION 0.9.0] du script (marche localement, manque les applications & multiples disques)
+    Date	:	03.02.2025
+ 	Auteur	:	Simon et Néo
+ 	Raisons	:	[VERSION 0.9.0] du script (marche localement, manque les applications & multiples disques)
 
-    Date  : 16.02.2025
- 	Auteur: Simon et Néo
- 	Raisons: [VERSION 1.0.0] Correction et optimisation des boucles, ajout des programmes installés dans le fichier log et l'option d'avoir un fichier log ou non
+    Date	:	16.02.2025
+ 	Auteur	:	Simon et Néo
+ 	Raisons	:	[VERSION 1.0.0] Correction et optimisation des boucles, ajout des programmes installés dans le fichier log et l'option d'avoir un fichier log ou non
 
-    Date  : 24.02.2025
- 	Auteur: Simon et Néo
- 	Raisons: [VERSION 1.9.0] Ajout des commentaires d'aide et implémentation du remoting (pas fonctionnel pour le moment)
+    Date	:	24.02.2025
+ 	Auteur	:	Simon et Néo
+ 	Raisons	:	[VERSION 1.9.0] Ajout des commentaires d'aide et implémentation du remoting (pas fonctionnel pour le moment)
 
-    Date  : - 03.03.2025
- 	Auteur: - Simon et Néo
- 	Raisons: - [VERSION 1.9.5] Simplification du code et implémentation du remoting semi-fonctionnel
+    Date	:	03.03.2025
+ 	Auteur	:	Simon et Néo
+ 	Raisons	:	[VERSION 1.9.5] Simplification du code et implémentation du remoting semi-fonctionnel
 
-    Date  : - 04.03.2025
- 	Auteur: - Néo
- 	Raisons: - [Version 2.0.0] Modification du code pour simplifier le remoting, qui fonctionne parfaitement
+    Date	:	04.03.2025
+ 	Auteur	:	Néo
+ 	Raisons	:	[Version 2.0.0] Modification du code pour simplifier le remoting, qui fonctionne parfaitement
 
-    Date  : - 10.03.2025
- 	Auteur: - Simon et Néo
- 	Raisons: - [Version 2.1.0] Optimisation du code et gestion des erreurs
+    Date	:	10.03.2025
+ 	Auteur	:	Simon et Néo
+ 	Raisons	:	[Version 2.1.0] Optimisation du code et gestion des erreurs
+
+    Date	:	10.03.2025
+ 	Auteur	:	Simon et Néo
+    Raison	:	[Version 2.1.1] Rectification des commentaires
  	*****************************************************************************
 
 .SYNOPSIS
@@ -80,10 +84,9 @@
 	Résultat : Affiche les informations récupérées par le script dans l'environnement de la  à distance
 
 .INPUTS
-    Les paramètres utiles à l'utilisateur
-    LogFilePath         : Chemin d'accès d'un fichier log pour journaliser la collecte
-    DistantComputerIP   : L'adresse IP d'un ordinateur à distance pour la collecte d'information
-    h & help            : Paramètre pour afficher l'aide du script
+    Les paramètres utiles à l'utilisateur :
+    	LogFilePath         :	Chemin d'accès d'un fichier log pour journaliser la collecte
+    	DistantComputerIP   :	L'adresse IP d'un ordinateur à distance pour la collecte d'information
 
 .OUTPUTS
     Les informations système sous la forme d'une liste, et, optionnellement, sous format ligne dans un fichier journal (.log)
@@ -92,13 +95,6 @@
     Aucun lien avec d'autres fichiers
 #>
 
-<# Le nombre de paramètres doit correspondre à ceux définis dans l'en-tête
-   Il est possible aussi qu'il n'y ait pas de paramètres mais des arguments
-   Un paramètre peut être typé : [string]$Param1
-   Un paramètre peut être initialisé : $Param2="Toto"
-   Un paramètre peut être obligatoire : [Parameter(Mandatory=$True][string]$Param3
-#>
-# La définition des paramètres se trouve juste après l'en-tête et un commentaire sur le.s paramètre.s est obligatoire
 param([string] $LogFilePath, [ipaddress] $DistantComputerIP, [string] $DistantComputerName, [switch] $ReturnLine)
 
 ###################################################################################################################
@@ -113,7 +109,7 @@ $titre_end = "╚═════════════════════
 $date_log = Get-Date -Format "yyyy-MM-dd HH:mm"                                                     # Date de journalisation
 $titre_log = $null                                                                                  # Titre du fichier .log
 
-$Path = $null                                                                                       # Chemin du fichier .log
+$path = $null                                                                                       # Chemin du fichier .log
 
 $session = $null                                                                                    # Session PowerShell sur une machine distante
 
@@ -156,11 +152,11 @@ function Write-Apps([Parameter(Mandatory = $True)] $packetTable, [switch] $isLog
         # Vérifie qu'isLog a été appelé
         if ($isLog) {
             # Affiche la ligne
-            Add-Content $Path -Value $appLine -NoNewline
+            Add-Content $path -Value $appLine -NoNewline
 
             # Vérifie que $app n'est pas la dernière instance de $apps
             if (!($appsTable[-1] -eq $app)) {
-                Add-Content $Path -Value ", " -NoNewline
+                Add-Content $path -Value ", " -NoNewline
             }
         }
         # Pas de fichier .log
@@ -182,8 +178,8 @@ function Write-Apps([Parameter(Mandatory = $True)] $packetTable, [switch] $isLog
 if ($LogFilePath) {
     # Vérifie que $LogFilePath est un chemin valide et qui mène à un fichier .log
     if ($LogFilePath -match '\.log$' -and (Test-Path -Path (Split-Path -Parent $LogFilePath))) {
-        # Ajoute le chemin à la variable $Path
-        $Path = $LogFilePath
+        # Ajoute le chemin à la variable $path
+        $path = $LogFilePath
     }
     # Le chemin n'existe pas
     else {
@@ -199,7 +195,7 @@ if ($LogFilePath) {
 }
 # $LogFilePath est vide
 else {
-    $Path = $null
+    $path = $null
 }
 
 # Vérifie que DistantComputerName a été appelé
@@ -367,11 +363,11 @@ if (!$ReturnLine) {
     Write-Host "└ RAM:`t`t" $ramUsed "/" $ramTotal "GB"
     Write-Host ""
 
-    # Vérifier que $Path n'est pas null
-    if (!($null -eq $Path)) {
+    # Vérifier que $path n'est pas null
+    if (!($null -eq $path)) {
         # Affichage des informations dans le fichier sysloginfo.log
         $titre_log + "OS: " + $systemInfo.Caption +
-        " - Version: " + $versionOS.Major + "." + $versionOS.Minor + "." + $versionOS.Build + " Build " + $versionOS.Build | Add-Content $Path -NoNewline
+        " - Version: " + $versionOS.Major + "." + $versionOS.Minor + "." + $versionOS.Build + " Build " + $versionOS.Build | Add-Content $path -NoNewline
 
         # Afficher les disques
 
@@ -391,24 +387,24 @@ if (!$ReturnLine) {
 
                 # Afficher le disque dans le fichier log
                 " - Utilisation de l'espace disque " + $diskLetter + ": " +
-                $diskRemainingSize + " / " + $diskSize + " GB" | Add-Content $Path -NoNewline
+                $diskRemainingSize + " / " + $diskSize + " GB" | Add-Content $path -NoNewline
             }
         }
 
         # Afficher le reste
-        " - RAM: " + $ramUsed + " / " + $ramTotal + " GB" | Add-Content $Path
+        " - RAM: " + $ramUsed + " / " + $ramTotal + " GB" | Add-Content $path
 
         # Afficher les programmes installés
-        $titre_log + "Programmes installés : " | Add-Content $Path -NoNewline
+        $titre_log + "Programmes installés : " | Add-Content $path -NoNewline
 
         # Appel de la fonction Write-Apps
         Write-Apps -packetTable $packages -isLog
 
         # Ajout d'une nouvelle ligne
-        Add-Content $Path -Value "`n" -NoNewline
+        Add-Content $path -Value "`n" -NoNewline
 
         # Afficher le fuseau horraire
-        $titre_log + "Fuseau Horaire : " + $timezone + "`n" | Add-Content $Path
+        $titre_log + "Fuseau Horaire : " + $timezone + "`n" | Add-Content $path
     }
 }
 # ReturnLine a été appelé
