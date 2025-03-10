@@ -9,11 +9,11 @@
     Modifications
  	Date	:	20.01.2025
  	Auteur	:	Simon et Néo
- 	Raisons	:	[VERSION 0.1.0] Création initiale du script
+ 	Raisons	:	[VERSION 0.0.1] Création initiale du script
 
     Date	:	27.01.2025
  	Auteur	:	Simon et Néo
- 	Raisons	:	[VERSION 0.4.0] Continuation du script
+ 	Raisons	:	[VERSION 0.0.2] Continuation du script
 
     Date	:	03.02.2025
  	Auteur	:	Simon et Néo
