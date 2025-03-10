@@ -35,9 +35,9 @@
  	Auteur: - Néo
  	Raisons: - [Version 2.0.0] Modification du code pour simplifier le remoting, qui fonctionne parfaitement
 
-    Date  : -
- 	Auteur: -
- 	Raisons: -
+    Date  : - 10.03.2025
+ 	Auteur: - Simon et Néo
+ 	Raisons: - [Version 2.1.0] Optimisation du code et gestion des erreurs
  	*****************************************************************************
 
 .SYNOPSIS
@@ -103,43 +103,43 @@ param([string] $LogFilePath, [ipaddress] $DistantComputerIP, [string] $DistantCo
 
 ###################################################################################################################
 
-$titre_date = Get-Date -Format "yyyy.MM.dd HH:mm:ss"                                                # Date utilisé dans l'en-tête
-$titre_top = "╔═══════════════════════════════════════════════════════════════════════════════╗"    # En-tête du script (s'affiche dans powershell)
-$titre_hea = "║                                 SYSINFO LOGGER                                ║"    # En-tête du script (s'affiche dans powershell)
-$titre_mid = "╟═══════════════════════════════════════════════════════════════════════════════╣"    # En-tête du script (s'affiche dans powershell)
-$titre_bod = "║ Collecte fait le $titre_date                                          ║"            # En-tête du script (s'affiche dans powershell)
-$titre_end = "╚═══════════════════════════════════════════════════════════════════════════════╝"    # En-tête du script (s'affiche dans powershell)
+$titre_date = Get-Date -Format "yyyy.MM.dd HH:mm:ss"                                                # Date utilisée dans l'en-tête
+$titre_top = "╔═══════════════════════════════════════════════════════════════════════════════╗"    # En-tête du script (s'affiche dans PowerShell)
+$titre_hea = "║                                 SYSINFO LOGGER                                ║"    # En-tête du script (s'affiche dans PowerShell)
+$titre_mid = "╟═══════════════════════════════════════════════════════════════════════════════╣"    # En-tête du script (s'affiche dans PowerShell)
+$titre_bod = "║ Collecte fait le $titre_date                                          ║"            # En-tête du script (s'affiche dans PowerShell)
+$titre_end = "╚═══════════════════════════════════════════════════════════════════════════════╝"    # En-tête du script (s'affiche dans PowerShell)
 
 $date_log = Get-Date -Format "yyyy-MM-dd HH:mm"                                                     # Date de journalisation
-$titre_log                                                                                          # Titre du fichier log
+$titre_log = $null                                                                                  # Titre du fichier .log
 
-$Path                                                                                               # Chemin du fichier log
+$Path = $null                                                                                       # Chemin du fichier .log
 
-$session                                                                                            # Session powershell sur une machine distante
+$session = $null                                                                                    # Session PowerShell sur une machine distante
 
-$addresses                                                                                          # Adresses IP de l'ordinateur local
+$addresses = $null                                                                                  # Adresses IP de l'ordinateur local
 
-$versionOS                                                                                          # Version de l'OS
-$systemInfo                                                                                         # Système d'exploitation
+$versionOS = $null                                                                                  # Version de l'OS
+$systemInfo = $null                                                                                 # Système d'exploitation
 
-$processor                                                                                          # Infos processeur
-$gpu                                                                                                # Infos carte graphique
+$processor = $null                                                                                  # Infos processeur
+$gpu = $null                                                                                        # Infos carte graphique
 
-$disks                                                                                              # Infos disques de stockage
+$disks = $null                                                                                      # Infos disques de stockage
 
-$ram                                                                                                # Infos RAM (tableau)
-$ramTotal                                                                                           # Info RAM total
-$ramUsed                                                                                            # Info RAM utilisée                                                                                            #
+$ram = $null                                                                                        # Infos RAM (tableau)
+$ramTotal = $null                                                                                   # Info RAM total
+$ramUsed = $null                                                                                    # Info RAM utilisée
 
-$packages                                                                                           #Paquets installés sur le système Les packets logiciels installés sur l'ordinateur
+$packages = $null                                                                                   # Paquets installés sur le système
 
 $timezone = Get-TimeZone                                                                            # Fuseau Horaire
 
-# Fonction utilisé pour écrire les applications dans le fichier .log
+# Fonction utilisée pour écrire les applications (dans un fichier .log ou non)
 function Write-Apps([Parameter(Mandatory = $True)] $packetTable, [switch] $isLog) {
     $appsTable = @()                                # Créer une nouvelle table pour storer les applications plus tard
 
-    # Boucle for each pour mettre toutes les applications dans une table séparée
+    # Boucle foreach pour mettre toutes les applications dans une table séparée
     foreach ($packet in $packetTable) {
 
         # Vérifie que le packet est bel et bien un programme
@@ -148,37 +148,29 @@ function Write-Apps([Parameter(Mandatory = $True)] $packetTable, [switch] $isLog
         }
     }
 
-    # Boucle for each pour écrire toute les applications dans le fichier log
+    # Boucle foreach pour écrire toute les applications dans le fichier .log
     foreach ($app in $appsTable) {
-        # Créer la ligne qui va s'affiche pour l'application actuelle
+        # Crée la ligne qui va s'afficher pour l'application actuelle
         $appLine = $app.Name + " Version " + $app.Version
 
-        # Vérifier qu'isLog a été appelé
+        # Vérifie qu'isLog a été appelé
         if ($isLog) {
-            # Afficher la ligne
+            # Affiche la ligne
             Add-Content $Path -Value $appLine -NoNewline
 
             # Vérifie que $app n'est pas la dernière instance de $apps
             if (!($appsTable[-1] -eq $app)) {
                 Add-Content $Path -Value ", " -NoNewline
             }
-            # Si c'est la dernière application
-            else {
-                Add-Content $Path -Value "`n" -NoNewline
-            }
         }
-        # Pas de fichier log
+        # Pas de fichier .log
         else {
-            # Afficher la ligne
+            # Affiche la ligne
             Write-Host $appLine -NoNewline
 
             # Vérifie que $app n'est pas la dernière instance de $apps
             if (!($appsTable[-1] -eq $app)) {
                 Write-Host ", " -NoNewline
-            }
-            # Si c'est la dernière application
-            else {
-                Write-Host "`n" -NoNewline
             }
         }
     }
@@ -186,11 +178,11 @@ function Write-Apps([Parameter(Mandatory = $True)] $packetTable, [switch] $isLog
 
 ###################################################################################################################
 
-# Vérifier que $LogFilePath a été appelé
+# Vérifie que $LogFilePath a été appelé
 if ($LogFilePath) {
-    # Vérifier que $LogFilePath est un chemin valide et qui mène à un fichier log
+    # Vérifie que $LogFilePath est un chemin valide et qui mène à un fichier .log
     if ($LogFilePath -match '\.log$' -and (Test-Path -Path (Split-Path -Parent $LogFilePath))) {
-        # Ajouter le chemin à la variable $Path
+        # Ajoute le chemin à la variable $Path
         $Path = $LogFilePath
     }
     # Le chemin n'existe pas
@@ -210,14 +202,14 @@ else {
     $Path = $null
 }
 
-# Vérifier que DistantComputerName a été appelé
+# Vérifie que DistantComputerName a été appelé
 if ($DistantComputerName) {
     # Vérifie qu'une connection peut être faite
     if (Test-Connection -ComputerName $DistantComputerName -Count 1 -Quiet) {
-        # Trouver l'adresse IP de la machine distante grâce à son adresse IP
+        # Trouve l'adresse IP de la machine distante grâce à son adresse IP
         $DistantComputerIP = [System.Net.Dns]::GetHostByName($DistantComputerName).AddressList.IPAddressToString
     }
-    # L'adresse ip n'est pas valide
+    # L'adresse IP n'est pas valide
     else {
         # Efface la console
         Clear-Host
@@ -230,14 +222,14 @@ if ($DistantComputerName) {
     }
 
 }
-# Vérifier que DistantComputerIP a été appelé
+# Vérifie que DistantComputerIP a été appelé
 elseif ($DistantComputerIP) {
     # Vérifie qu'une connection peut être faite
     if (Test-Connection -IPAddress $DistantComputerIP -Count 1 -Quiet) {
-        # Trouver le nom de la machine distante grâce à son adresse IP
+        # Trouve le nom de la machine distante grâce à son adresse IP
         $DistantComputerName = [System.Net.Dns]::GetHostByAddress($DistantComputerIP).Hostname
     }
-    # L'adresse ip n'est pas valide
+    # L'adresse IP n'est pas valide
     else {
         # Efface la console
         Clear-Host
@@ -255,23 +247,33 @@ elseif ($DistantComputerIP) {
 
 # Vérifie qu'on a un nom de machine distante
 if ($DistantComputerName) {
-    # Ouvrir une session PowerShell
+    # Ouvre une session PowerShell
     $session = New-PSSession -ComputerName $DistantComputerName -Credential Get-Credential
 
-    # Initialisation de variables de l'autre machine
-    $addresses = Invoke-Command -Session $session -ScriptBlock { Get-NetIPAddress -AddressFamily IPv4 }
+    # Vérifie que la session a été créée
+    if ($session) {
+        # Initialisation de variables de l'autre machine
+        $addresses = Invoke-Command -Session $session -ScriptBlock { Get-NetIPAddress -AddressFamily IPv4 }
 
-    $versionOS = Invoke-Command -Session $session -ScriptBlock { [System.Environment]::OSVersion.Version }
-    $systemInfo = Invoke-Command -Session $session -ScriptBlock { Get-CimInstance -ClassName Win32_ComputerSystem }
+        $versionOS = Invoke-Command -Session $session -ScriptBlock { [System.Environment]::OSVersion.Version }
+        $systemInfo = Invoke-Command -Session $session -ScriptBlock { Get-CimInstance -ClassName Win32_ComputerSystem }
 
-    $processor = Invoke-Command -Session $session -ScriptBlock { (Get-CimInstance -ClassName CIM_Processor).Name }
-    $gpu = Invoke-Command -Session $session -ScriptBlock { (Get-CimInstance -ClassName CIM_VideoController).Name }
+        $processor = Invoke-Command -Session $session -ScriptBlock { (Get-CimInstance -ClassName CIM_Processor).Name }
+        $gpu = Invoke-Command -Session $session -ScriptBlock { (Get-CimInstance -ClassName CIM_VideoController).Name }
 
-    $ram = Invoke-Command -Session $session -ScriptBlock { Get-CimInstance -ClassName CIM_OperatingSystem }
+        $ram = Invoke-Command -Session $session -ScriptBlock { Get-CimInstance -ClassName CIM_OperatingSystem }
 
-    $disks = Invoke-Command -Session $session -ScriptBlock { Get-Volume }
+        $disks = Invoke-Command -Session $session -ScriptBlock { Get-Volume }
 
-    $packages = Invoke-Command -Session $session -ScriptBlock { Get-Package }
+        $packages = Invoke-Command -Session $session -ScriptBlock { Get-Package }
+    }
+    # La session n'a pas été créée
+    else {
+        # Efface les entrées
+        Clear-Host
+
+        throw [System.ArgumentException]::new("Erreur d'ouverture de session vers la machine '$DistantComputerName'. Veuillez réessayer.")
+    }
 }
 # Pas de machine distante à vérifier
 else {
@@ -292,12 +294,12 @@ else {
 
 }
 
-# Effacer les entrées
+# Efface les entrées
 Clear-Host
 
-# Calcul de la ram
-$ramTotal = [Math]::Round((Get-CimInstance -Class Win32_ComputerSystem).TotalPhysicalMemory / 1GB, 2)
-$ramUsed = [Math]::Round((Get-CimInstance -Class Win32_ComputerSystem).TotalPhysicalMemory / 1GB - $ram.FreePhysicalMemory * 1KB / 1GB, 2)
+# Calcule de la ram
+$ramTotal = [Math]::Round($systemInfo.TotalPhysicalMemory / 1GB, 2)
+$ramUsed = [Math]::Round($systemInfo.TotalPhysicalMemory / 1GB - $ram.FreePhysicalMemory * 1KB / 1GB, 2)
 
 # Vérification pour voir si $addresses est un tableau
 if ($addresses.Length -gt 0) {
@@ -321,22 +323,24 @@ if (!$ReturnLine) {
     # Affichage des information sur l'OS dans le terminal
     Write-Host "┌ OPERATING SYSTEM"
     Write-Host "| Hostname:`t" $systemInfo.Name
+    Write-Host "|"
+    Write-Host "├ ADRESSES IP"
 
     # Afficher les adresses IP
     foreach ($IP in $addresses) {
-        Write-Host "| Interface :`t", $($IP.InterfaceAlias)
-        Write-Host "| Adresse IP :`t", $($IP.IPAddress)
+        Write-Host "|  Interface :`t", $($IP.InterfaceAlias)
+        Write-Host "|  Adresse IP :`t", $($IP.IPAddress)
         Write-Host "|"
     }
 
-    Write-Host "| OS:`t`t" (Get-WmiObject -Class Win32_OperatingSystem).Caption
+    Write-Host "| OS:`t`t" $systemInfo.Caption
     Write-Host "└ Version:`t" $versionOS.Major "." $versionOS.Minor "." $versionOS.Build "Build" $versionOS.Build
     Write-Host ""
 
     # Affichage des information sur le hardware dans le terminal
     Write-Host "┌ HARDWARE"
     Write-Host "| CPU:`t`t" $processor
-    Write-Host "| GPU 0:`t" $gpu
+    Write-Host "| GPU:`t`t" $gpu
 
     # Afficher les disques
 
@@ -366,13 +370,12 @@ if (!$ReturnLine) {
     # Vérifier que $Path n'est pas null
     if (!($null -eq $Path)) {
         # Affichage des informations dans le fichier sysloginfo.log
-        $titre_log + "OS: " + (Get-WmiObject -Class Win32_OperatingSystem).Caption +
+        $titre_log + "OS: " + $systemInfo.Caption +
         " - Version: " + $versionOS.Major + "." + $versionOS.Minor + "." + $versionOS.Build + " Build " + $versionOS.Build | Add-Content $Path -NoNewline
 
         # Afficher les disques
 
-        #boucle foreach pour tout les disques
-        #boucle foreach pour tout les disques
+        # Boucle foreach pour tout les disques
         foreach ($disk in $disks) {
             # Prendre la lettre du volume
             $diskLetter = $disk.DriveLetter
@@ -401,6 +404,9 @@ if (!$ReturnLine) {
         # Appel de la fonction Write-Apps
         Write-Apps -packetTable $packages -isLog
 
+        # Ajout d'une nouvelle ligne
+        Add-Content $Path -Value "`n" -NoNewline
+
         # Afficher le fuseau horraire
         $titre_log + "Fuseau Horaire : " + $timezone + "`n" | Add-Content $Path
     }
@@ -408,7 +414,7 @@ if (!$ReturnLine) {
 # ReturnLine a été appelé
 else {
     # Affichage des informations dans le fichier log
-    $titre_log + "OS: " + (Get-WmiObject -Class Win32_OperatingSystem).Caption +
+    $titre_log + "OS: " + $systemInfo.Caption +
     " - Version: " + $versionOS.Major + "." + $versionOS.Minor + "." + $versionOS.Build + " Build " + $versionOS.Build | Write-Host -NoNewline
 
     # Afficher les disques
@@ -442,6 +448,9 @@ else {
     # Appel de la fonction Write-Apps
     Write-Apps -packetTable $packages
 
-    # Afficher le fuseau horraire
+    # Ajout d'une nouvelle ligne
+    Write-Host "`n" -NoNewline
+
+    # Affiche le fuseau horraire
     $titre_log + "Fuseau Horaire : " + $timezone + "`n" | Write-Host
 }
